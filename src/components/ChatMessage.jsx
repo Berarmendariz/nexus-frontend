@@ -116,6 +116,27 @@ export default function ChatMessage({ message }) {
     )
   }
 
+  if (message.typing) {
+    return (
+      <div style={{ ...styles.wrapper, ...styles.assistantWrapper }}>
+        <div style={{ ...styles.assistantBubble, maxWidth: '85%' }}>
+          <div style={styles.assistantLabel}>
+            <div style={styles.dot} />
+            <span>Nexus AI</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--nexus-text-2)', fontSize: 14 }}>
+            <span>{message.content}</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nexus-accent)', animation: `dotBounce 1.4s ease-in-out ${i*0.2}s infinite` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (message.isReport) {
     return (
       <div style={{ ...styles.wrapper, ...styles.assistantWrapper }}>
@@ -124,7 +145,7 @@ export default function ChatMessage({ message }) {
             <div style={styles.dot} />
             <span>Nexus AI</span>
           </div>
-          <ReportDisplay report={message.report} />
+          <ReportDisplay report={message.report} simulationId={message.simulationId} />
         </div>
       </div>
     )

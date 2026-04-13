@@ -315,8 +315,9 @@ export default function SimulatorPage() {
       }
 
       const report = buildMockReport(project, text)
+      let savedId = null
       try {
-        await fetch(API + '/api/simulations', {
+        const saveRes = await fetch(API + '/api/simulations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -326,11 +327,15 @@ export default function SimulatorPage() {
             report,
           }),
         })
+        if (saveRes.ok) {
+          const saved = await saveRes.json()
+          savedId = saved.data?.id || null
+        }
       } catch (saveErr) {
-        console.warn('Could not save mock simulation:', saveErr.message)
+        console.warn('Could not save simulation:', saveErr.message)
       }
       setSimulationPhase('complete')
-      setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', isReport: true, report } : m))
+      setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', isReport: true, report, simulationId: savedId } : m))
     } catch (err) {
       setSimulationPhase('')
       setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', content: 'Tuve un problema. Intenta de nuevo.' } : m))
