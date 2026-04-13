@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ReportDisplay from '../components/ReportDisplay.jsx'
 import ChatMessage from '../components/ChatMessage.jsx'
+import SimulationFeed from '../components/SimulationFeed.jsx'
 
 const API = import.meta.env.VITE_API_URL || ''
 
@@ -135,6 +136,13 @@ export default function SimulatorPage() {
   const [project, setProject] = useState({ name: '', location: '', type: 'residencial', units: '', area: '', priceRange: '' })
   const [showForm, setShowForm] = useState(true)
   const [backendStatus, setBackendStatus] = useState('checking')
+
+  // Level 2: Simulation feed state
+  const [simulationActivities, setSimulationActivities] = useState([])
+  const [currentRound, setCurrentRound] = useState(0)
+  const [totalRounds, setTotalRounds] = useState(0)
+  const [simulationPhase, setSimulationPhase] = useState('')
+
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -147,6 +155,118 @@ export default function SimulatorPage() {
       .catch(() => setBackendStatus('offline'))
   }, [])
 
+  async function handleStreamingSimulation(text, typingMsg) {
+    // Reset feed state
+    setSimulationActivities([])
+    setCurrentRound(0)
+    setTotalRounds(0)
+    setSimulationPhase('initializing')
+
+    try {
+      const response = await fetch(API + '/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_name: project.name || 'nexus_sim',
+          description: text,
+          location: project.location,
+          type: project.type,
+          units: project.units,
+          area: project.area,
+          priceRange: project.priceRange,
+          max_rounds: 8,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let currentEvent = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // keep incomplete line in buffer
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+
+          if (trimmed.startsWith('event:')) {
+            currentEvent = trimmed.slice(6).trim()
+            continue
+          }
+
+          if (trimmed.startsWith('data:')) {
+            const dataStr = trimmed.slice(5).trim()
+            if (!dataStr) continue
+
+            try {
+              const data = JSON.parse(dataStr)
+
+              switch (currentEvent) {
+                case 'status':
+                  setSimulationPhase(data.phase || data.status || '')
+                  if (data.currentRound) setCurrentRound(data.currentRound)
+                  if (data.totalRounds) setTotalRounds(data.totalRounds)
+                  break
+
+                case 'agent_activity':
+                  setSimulationActivities(prev => [...prev, {
+                    agent: data.agent || 'Agente',
+                    role: data.role || '',
+                    action: data.action || 'post',
+                    content: data.content || '',
+                    round: data.round || 0,
+                  }])
+                  if (data.round) setCurrentRound(data.round)
+                  break
+
+                case 'report': {
+                  const report = data.report || data
+                  setSimulationPhase('complete')
+                  setMessages(prev =>
+                    prev.map(m => m === typingMsg
+                      ? { role: 'assistant', isReport: true, report }
+                      : m
+                    )
+                  )
+                  setIsLoading(false)
+                  return true // success
+                }
+
+                case 'error':
+                  throw new Error(data.message || data.error || 'Error en simulación')
+
+                default:
+                  break
+              }
+            } catch (parseErr) {
+              // Skip unparseable lines
+              if (currentEvent === 'error') {
+                throw parseErr
+              }
+            }
+            currentEvent = '' // reset after processing data
+          }
+        }
+      }
+
+      // If stream ended without a report event, fall back
+      return false
+    } catch (err) {
+      console.warn('Streaming simulation failed:', err.message)
+      return false // signal to fall back
+    }
+  }
+
   async function handleSend(initialMessage) {
     const text = (initialMessage || input).trim()
     if (!text || isLoading) return
@@ -157,7 +277,24 @@ export default function SimulatorPage() {
     const typingMsg = { role: 'assistant', typing: true, content: 'Nexus esta ejecutando la simulacion con agentes OASIS...' }
     setMessages(prev => [...prev, userMsg, typingMsg])
 
+    // Reset simulation feed
+    setSimulationActivities([])
+    setSimulationPhase('')
+    setCurrentRound(0)
+    setTotalRounds(0)
+
     try {
+      // Try streaming endpoint first
+      let streamingSuccess = false
+      try {
+        streamingSuccess = await handleStreamingSimulation(text, typingMsg)
+      } catch (e) {
+        console.warn('Streaming unavailable:', e.message)
+      }
+
+      if (streamingSuccess) return // streaming handled everything
+
+      // Fallback: try original MiroFish endpoint, then mock
       let simData = {}
       if (backendStatus === 'ok') {
         try {
@@ -176,8 +313,10 @@ export default function SimulatorPage() {
       }
 
       const report = buildMockReport(project, text)
+      setSimulationPhase('complete')
       setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', isReport: true, report } : m))
     } catch (err) {
+      setSimulationPhase('')
       setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', content: 'Tuve un problema. Intenta de nuevo.' } : m))
     } finally {
       setIsLoading(false)
@@ -262,7 +401,7 @@ export default function SimulatorPage() {
 
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
-                  onClick={() => setMessages([WELCOME])}
+                  onClick={() => { setMessages([WELCOME]); setSimulationActivities([]); setSimulationPhase('') }}
                   style={{ flex: 1, padding: '9px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', cursor: 'pointer', fontSize: 12 }}
                 >
                   Nueva simulacion
@@ -291,18 +430,29 @@ export default function SimulatorPage() {
             <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Simulador de Decisiones</span>
           </div>
           <button
-            onClick={() => setMessages([WELCOME])}
+            onClick={() => { setMessages([WELCOME]); setSimulationActivities([]); setSimulationPhase('') }}
             style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-2)', cursor: 'pointer', fontSize: 12, padding: '7px 14px' }}
           >
             Nueva simulacion
           </button>
         </div>
 
-        {/* Messages */}
+        {/* Messages + Simulation Feed */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           {messages.map((msg, i) => (
             <ChatMessage key={i} message={msg} />
           ))}
+
+          {/* Live simulation feed — shown while loading */}
+          {isLoading && (
+            <SimulationFeed
+              activities={simulationActivities}
+              currentRound={currentRound}
+              totalRounds={totalRounds}
+              phase={simulationPhase}
+            />
+          )}
+
           <div ref={bottomRef} />
         </div>
 
