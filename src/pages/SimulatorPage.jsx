@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import ReportDisplay from '../components/ReportDisplay.jsx'
+import { Link } from 'react-router-dom'
 import ChatMessage from '../components/ChatMessage.jsx'
 import SimulationFeed from '../components/SimulationFeed.jsx'
 
@@ -167,14 +167,16 @@ export default function SimulatorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          project_name: project.name || 'nexus_sim',
-          description: text,
-          location: project.location,
-          type: project.type,
-          units: project.units,
-          area: project.area,
-          priceRange: project.priceRange,
-          max_rounds: 8,
+          project: {
+            name: project.name || 'nexus_sim',
+            description: text,
+            location: project.location,
+            type: project.type,
+            units: project.units,
+            area: project.area,
+            priceRange: project.priceRange,
+          },
+          question: text,
         }),
       })
 
@@ -313,6 +315,20 @@ export default function SimulatorPage() {
       }
 
       const report = buildMockReport(project, text)
+      try {
+        await fetch(API + '/api/simulations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project: { ...project, description: text },
+            question: text,
+            status: 'completed',
+            report,
+          }),
+        })
+      } catch (saveErr) {
+        console.warn('Could not save mock simulation:', saveErr.message)
+      }
       setSimulationPhase('complete')
       setMessages(prev => prev.map(m => m === typingMsg ? { role: 'assistant', isReport: true, report } : m))
     } catch (err) {
@@ -428,6 +444,7 @@ export default function SimulatorPage() {
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' }} />
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>Nexus</span>
             <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Simulador de Decisiones</span>
+            <Link to="/history" style={{ textDecoration: 'none', marginLeft: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-2)', fontSize: 12, padding: '7px 14px' }}>Historial</Link>
           </div>
           <button
             onClick={() => { setMessages([WELCOME]); setSimulationActivities([]); setSimulationPhase('') }}

@@ -1,3 +1,5 @@
+import ReportDisplay from './ReportDisplay.jsx'
+
 const styles = {
   wrapper: {
     display: 'flex',
@@ -109,6 +111,20 @@ export default function ChatMessage({ message }) {
       <div style={{ ...styles.wrapper, ...styles.userWrapper }}>
         <div style={styles.userBubble}>
           {message.content}
+        </div>
+      </div>
+    )
+  }
+
+  if (message.isReport) {
+    return (
+      <div style={{ ...styles.wrapper, ...styles.assistantWrapper }}>
+        <div style={{ ...styles.assistantBubble, maxWidth: '95%' }}>
+          <div style={styles.assistantLabel}>
+            <div style={styles.dot} />
+            <span>Nexus AI</span>
+          </div>
+          <ReportDisplay report={message.report} />
         </div>
       </div>
     )
