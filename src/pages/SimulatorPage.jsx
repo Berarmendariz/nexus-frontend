@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ReportDisplay from '../components/ReportDisplay.jsx'
 import ChatMessage from '../components/ChatMessage.jsx'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+const API = import.meta.env.VITE_API_URL || ''
 
 const WELCOME = {
   role: 'assistant',
