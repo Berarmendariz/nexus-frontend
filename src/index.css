@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Nexus component aliases */
+  --nexus-bg: var(--bg);
+  --nexus-surface: var(--surface);
+  --nexus-surface-2: var(--surface-2);
+  --nexus-border: var(--border);
+  --nexus-accent: var(--accent);
+  --nexus-accent-2: var(--accent-2);
+  --nexus-success: var(--success);
+  --nexus-warning: var(--warning);
+  --nexus-danger: var(--danger);
+  --nexus-text: var(--text);
+  --nexus-text-2: var(--text-2);
+  --nexus-text-3: var(--text-3);
+
+  --bg: #080c14;
+  --surface: #0f1623;
+  --surface-2: #161e2e;
+  --border: #1e2d42;
+  --accent: #3b82f6;
+  --accent-2: #60a5fa;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text: #e2e8f0;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* Selection */
+::selection { background: rgba(59, 130, 246, 0.3); color: var(--text); }
+
+/* Inputs & buttons */
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility */
+.animate-pulse { animation: pulse 2s infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+.fade-in { animation: fadeIn 0.3s ease-out; }
