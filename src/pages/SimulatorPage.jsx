@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import ChatMessage from '../components/ChatMessage.jsx'
 import SimulationFeed from '../components/SimulationFeed.jsx'
+import AgentNetworkGraph from '../components/AgentNetworkGraph.jsx'
 
 const API = import.meta.env.VITE_API_URL || ''
 
@@ -142,6 +143,8 @@ export default function SimulatorPage() {
   const [currentRound, setCurrentRound] = useState(0)
   const [totalRounds, setTotalRounds] = useState(0)
   const [simulationPhase, setSimulationPhase] = useState('')
+  const [allAgents, setAllAgents] = useState([])
+  const [agentStats, setAgentStats] = useState(null)
 
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -231,12 +234,17 @@ export default function SimulatorPage() {
                   if (data.round) setCurrentRound(data.round)
                   break
 
+                case 'agents':
+                  setAllAgents(data.agents || [])
+                  setAgentStats(data.stats)
+                  break
+
                 case 'report': {
-                  const report = data.report || data
+                  const report = data
                   setSimulationPhase('complete')
                   setMessages(prev =>
                     prev.map(m => m === typingMsg
-                      ? { role: 'assistant', isReport: true, report }
+                      ? { role: 'assistant', isReport: true, report, simulationId: data._simId || simId }
                       : m
                     )
                   )
@@ -284,6 +292,8 @@ export default function SimulatorPage() {
     setSimulationPhase('')
     setCurrentRound(0)
     setTotalRounds(0)
+    setAllAgents([])
+    setAgentStats(null)
 
     try {
       // Try streaming endpoint first
@@ -473,6 +483,45 @@ export default function SimulatorPage() {
               totalRounds={totalRounds}
               phase={simulationPhase}
             />
+          )}
+
+          {isLoading && allAgents.length > 0 && (
+            <AgentNetworkGraph
+              activities={simulationActivities}
+              agents={allAgents}
+              phase={simulationPhase}
+            />
+          )}
+
+          {!isLoading && allAgents.length > 0 && simulationPhase === 'complete' && (
+            <AgentNetworkGraph
+              activities={simulationActivities}
+              agents={allAgents}
+              phase={simulationPhase}
+            />
+          )}
+
+          {agentStats && allAgents.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '12px 0' }}>
+              <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                👥 {agentStats.total ?? allAgents.length} agentes
+              </span>
+              {agentStats.buying != null && (
+                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e' }}>
+                  ✅ {agentStats.buying} comprando
+                </span>
+              )}
+              {agentStats.considering != null && (
+                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#f59e0b22', border: '1px solid #f59e0b44', color: '#f59e0b' }}>
+                  🤔 {agentStats.considering} considerando
+                </span>
+              )}
+              {agentStats.notBuying != null && (
+                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#ef444422', border: '1px solid #ef444444', color: '#ef4444' }}>
+                  ❌ {agentStats.notBuying} no compran
+                </span>
+              )}
+            </div>
           )}
 
           <div ref={bottomRef} />
