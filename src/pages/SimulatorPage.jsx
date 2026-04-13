@@ -469,60 +469,75 @@ export default function SimulatorPage() {
           </button>
         </div>
 
-        {/* Messages + Simulation Feed */}
+        {/* Content area */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          {messages.map((msg, i) => (
-            <ChatMessage key={i} message={msg} />
+          {/* Pre-simulation messages */}
+          {messages.filter(m => !m.isReport).map((msg, i) => (
+            <ChatMessage key={`msg-${i}`} message={msg} />
           ))}
 
-          {/* Live simulation feed — shown while loading */}
-          {isLoading && (
-            <SimulationFeed
-              activities={simulationActivities}
-              currentRound={currentRound}
-              totalRounds={totalRounds}
-              phase={simulationPhase}
-            />
-          )}
-
-          {isLoading && allAgents.length > 0 && (
-            <AgentNetworkGraph
-              activities={simulationActivities}
-              agents={allAgents}
-              phase={simulationPhase}
-            />
-          )}
-
-          {!isLoading && allAgents.length > 0 && simulationPhase === 'complete' && (
-            <AgentNetworkGraph
-              activities={simulationActivities}
-              agents={allAgents}
-              phase={simulationPhase}
-            />
-          )}
-
-          {agentStats && allAgents.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '12px 0' }}>
-              <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
-                👥 {agentStats.total ?? allAgents.length} agentes
-              </span>
-              {agentStats.buying != null && (
-                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e' }}>
-                  ✅ {agentStats.buying} comprando
-                </span>
+          {/* ── Split-screen: Graph (left) + Feed (right) ── */}
+          {(isLoading || (simulationPhase === 'complete' && allAgents.length > 0)) && (
+            <div style={{
+              display: 'flex', gap: 16, marginTop: 16,
+              flexDirection: allAgents.length > 0 ? 'row' : 'column',
+              minHeight: 480,
+            }}>
+              {/* LEFT: Agent Network Graph */}
+              {allAgents.length > 0 && (
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <AgentNetworkGraph
+                    activities={simulationActivities}
+                    agents={allAgents}
+                    phase={simulationPhase}
+                  />
+                  {/* Agent stats pills */}
+                  {agentStats && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                        👥 {agentStats.total ?? allAgents.length} agentes
+                      </span>
+                      {agentStats.buying != null && (
+                        <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: '#22c55e18', border: '1px solid #22c55e33', color: '#22c55e' }}>
+                          ✅ {agentStats.buying} compran
+                        </span>
+                      )}
+                      {agentStats.considering != null && (
+                        <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: '#f59e0b18', border: '1px solid #f59e0b33', color: '#f59e0b' }}>
+                          🤔 {agentStats.considering} consideran
+                        </span>
+                      )}
+                      {agentStats.notBuying != null && (
+                        <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: '#ef444418', border: '1px solid #ef444433', color: '#ef4444' }}>
+                          ❌ {agentStats.notBuying} no compran
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-              {agentStats.considering != null && (
-                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#f59e0b22', border: '1px solid #f59e0b44', color: '#f59e0b' }}>
-                  🤔 {agentStats.considering} considerando
-                </span>
-              )}
-              {agentStats.notBuying != null && (
-                <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: '#ef444422', border: '1px solid #ef444444', color: '#ef4444' }}>
-                  ❌ {agentStats.notBuying} no compran
-                </span>
-              )}
+
+              {/* RIGHT: Conversation Feed */}
+              <div style={{
+                flex: 1, minWidth: 0,
+                display: 'flex', flexDirection: 'column',
+              }}>
+                <SimulationFeed
+                  activities={simulationActivities}
+                  currentRound={currentRound}
+                  totalRounds={totalRounds}
+                  phase={simulationPhase}
+                />
+              </div>
             </div>
           )}
+
+          {/* ── Report below both panels ── */}
+          {messages.filter(m => m.isReport).map((msg, i) => (
+            <div key={`report-${i}`} style={{ marginTop: 24 }}>
+              <ChatMessage message={msg} />
+            </div>
+          ))}
 
           <div ref={bottomRef} />
         </div>
