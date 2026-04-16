@@ -284,6 +284,9 @@ export default function HomePage() {
           <button style={styles.navLink} onClick={() => navigate('/history')}>
             Historial
           </button>
+          <button style={styles.navLink} onClick={() => navigate('/knowledge-base')}>
+            Knowledge Base
+          </button>
           <button
             style={styles.navCta}
             onClick={() => navigate('/simulator')}

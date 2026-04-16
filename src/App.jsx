@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage.jsx'
 import SimulatorPage from './pages/SimulatorPage.jsx'
 import HistoryPage from './pages/HistoryPage.jsx'
 import ComparePage from './pages/ComparePage.jsx'
+import KnowledgeBasePage from './pages/KnowledgeBasePage.jsx'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
       </Routes>
     </BrowserRouter>
   )
